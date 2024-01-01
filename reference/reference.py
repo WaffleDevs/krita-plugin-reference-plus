@@ -17,8 +17,7 @@ class ReferenceExtension(Extension):
         super().__init__(parent)
 
     def setup(self):
-        file = open("C:/Users/Heather/Downloads/log.txt", "w")
-        file.close()
+        pass
 
     def createActions(self, window):
         pass
