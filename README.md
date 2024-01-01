@@ -1,3 +1,20 @@
+## Reference Plus
+
+This is a fork of [antoine-roux/krita-plugin-reference](https://github.com/antoine-roux/krita-plugin-reference). This fork adds the following:
+
+ * Rotation of the reference image.
+
+
+
+The rotation is probably all I am going to add, as it was a request from a friend of mine.
+
+
+<br />
+<br />
+
+
+# The Original Readme:
+
 # Krita reference plugin
 
 This is a quick and dirty plugin to replace the removed Reference Images Docker in Krita 4.0.0
