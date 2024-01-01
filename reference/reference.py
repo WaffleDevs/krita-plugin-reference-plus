@@ -17,7 +17,8 @@ class ReferenceExtension(Extension):
         super().__init__(parent)
 
     def setup(self):
-        pass
+        file = open("C:/Users/Heather/Downloads/log.txt", "w")
+        file.close()
 
     def createActions(self, window):
         pass
@@ -27,7 +28,7 @@ Krita.instance().addExtension(ReferenceExtension(Krita.instance()))
 
 class ReferenceViewer(QWidget):
     colorPicked = pyqtSignal(QColor)
-    triggerDistance = 10
+    triggerDistance = 20
 
     def __init__(self, parent=None, flags=None):
         super().__init__(parent)
@@ -45,6 +46,9 @@ class ReferenceViewer(QWidget):
         self.moving = False
         self.currentColor = None
 
+        self.imageIndex = 0
+        self.images = None
+
     def getCurrentColor(self, event):
         if not self.image.isNull():
             pos = (event.pos() - self.origin) / self.zoom
@@ -52,9 +56,12 @@ class ReferenceViewer(QWidget):
 
         return None
 
-    def setImage(self, image=QImage()):
+    def setImage(self, image=QImage(), resetView=True):
         self.image = image
-        self.resetView()
+        if resetView:
+            self.resetView()
+        else:
+            self.update()
 
     def resetView(self):
         if self.image.isNull():
@@ -167,14 +174,37 @@ class ReferenceDocker(DockWidget):
         openButton.setDefaultAction(self.open)
         buttonLayout.addWidget(openButton)
 
+        self.r90 = QAction(self)
+        self.r90.setIconText("Rotate -90")
+        self.r90.triggered.connect(self.rotateBack90)
+        r90Button = QToolButton()
+        r90Button.setDefaultAction(self.r90)
+        buttonLayout.addWidget(r90Button)
+
+        self.r90 = QAction(self)
+        self.r90.setIconText("Rotate 90")
+        self.r90.triggered.connect(self.rotate90)
+        r90Button = QToolButton()
+        r90Button.setDefaultAction(self.r90)
+        buttonLayout.addWidget(r90Button)
+
         layout.addLayout(buttonLayout)
         self.setWidget(widget)
 
         fileName = Application.readSetting('referenceDocker', 'lastref', None)
+        
+        
         if fileName is not None:
-            self.viewer.setImage(QImage(fileName))
-
+            image0 = QImage(fileName)
+            image90 = self.createRotatedImage(QImage(fileName))
+            image180 = QImage(image0).mirrored(True,True)
+            image270 = QImage(image90).mirrored(True,True)
+            self.viewer.images = [image0,image90,image180,image270]
+            self.viewer.setImage(self.viewer.images[0])
     def centerView(self):
+        if not self.viewer.images == None:
+            self.viewer.imageIndex = 0
+            self.viewer.setImage(self.viewer.images[self.viewer.imageIndex]) 
         self.viewer.resetView()
 
     def openImage(self):
@@ -186,8 +216,34 @@ class ReferenceDocker(DockWidget):
 
         self.currentDir = os.path.dirname(fileName)
         Application.writeSetting('referenceDocker', 'lastdir', self.currentDir)
+        image0 = QImage(fileName)
+        image90 = self.createRotatedImage(image0)
+        image180 = QImage(image0).mirrored(True,True)
+        image270 = QImage(image90).mirrored(True,True)
+        self.viewer.images = [image0,image90,image180,image270]
+        self.viewer.setImage(self.viewer.images[0])
 
-        self.viewer.setImage(QImage(fileName))
+    def createRotatedImage(self, image):
+        xNum = image.size().width()
+        yNum = image.size().height()
+        rotatedImage = QImage(yNum,xNum,image.format())
+        for y in range(yNum):
+            for x in range(xNum):
+                color = image.pixelColor(x,y)
+                rotatedImage.setPixelColor(y,xNum-x,color)
+        return rotatedImage
+
+    def rotate90(self):
+        self.viewer.imageIndex += 1
+        if self.viewer.imageIndex > 3:
+            self.viewer.imageIndex = 0 
+        self.viewer.setImage(self.viewer.images[self.viewer.imageIndex], False)
+
+    def rotateBack90(self):
+        self.viewer.imageIndex -= 1
+        if self.viewer.imageIndex < 0:
+            self.viewer.imageIndex = 3 
+        self.viewer.setImage(self.viewer.images[self.viewer.imageIndex], False)
 
     @pyqtSlot(QColor)
     def changeColor(self, color):
